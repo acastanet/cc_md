@@ -51,7 +51,13 @@
             font-weight: 600;
         }
 
-        .export-btn {
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .export-btn, .theme-toggle-btn {
             background: white;
             color: #667eea;
             border: none;
@@ -63,13 +69,13 @@
             font-size: 0.9rem;
         }
 
-        .export-btn:hover {
+        .export-btn:hover, .theme-toggle-btn:hover {
             background: #f8f9fa;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
-        .export-btn:active {
+        .export-btn:active, .theme-toggle-btn:active {
             transform: translateY(0);
         }
 
@@ -253,12 +259,112 @@
                 border-bottom: 2px solid #e9ecef;
             }
         }
+
+        /* Mode Sombre */
+        body.dark-mode {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .header {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+        }
+
+        body.dark-mode .export-btn,
+        body.dark-mode .theme-toggle-btn {
+            background: #2d3748;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .export-btn:hover,
+        body.dark-mode .theme-toggle-btn:hover {
+            background: #4a5568;
+        }
+
+        body.dark-mode .column-header {
+            background: #2d3748;
+            color: #e0e0e0;
+            border-bottom: 2px solid #4a5568;
+        }
+
+        body.dark-mode .left-column {
+            border-right: 2px solid #4a5568;
+        }
+
+        body.dark-mode #markdown-input {
+            background: #2d3748;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #markdown-output {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #markdown-output h1,
+        body.dark-mode #markdown-output h2 {
+            border-bottom-color: #4a5568;
+        }
+
+        body.dark-mode #markdown-output code {
+            background: #2d3748;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #markdown-output pre {
+            background: #2d3748;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #markdown-output blockquote {
+            border-left-color: #667eea;
+            color: #a0aec0;
+        }
+
+        body.dark-mode #markdown-output th,
+        body.dark-mode #markdown-output td {
+            border-color: #4a5568;
+        }
+
+        body.dark-mode #markdown-output th {
+            background: #2d3748;
+        }
+
+        body.dark-mode #markdown-output a {
+            color: #90cdf4;
+        }
+
+        body.dark-mode #markdown-output hr {
+            border-top-color: #4a5568;
+        }
+
+        body.dark-mode #markdown-output::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+
+        body.dark-mode #markdown-output::-webkit-scrollbar-thumb {
+            background: #4a5568;
+        }
+
+        body.dark-mode #markdown-output::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+
+        @media (max-width: 768px) {
+            body.dark-mode .left-column {
+                border-right: none;
+                border-bottom: 2px solid #4a5568;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>📝 Éditeur Markdown en Temps Réel</h1>
-        <button class="export-btn" onclick="exportToHTML()">📥 Exporter en HTML</button>
+        <div class="header-buttons">
+            <button class="theme-toggle-btn" onclick="toggleDarkMode()">🌙 Mode Sombre</button>
+            <button class="export-btn" onclick="exportToHTML()">📥 Exporter en HTML</button>
+        </div>
     </div>
 
     <div class="container">
@@ -345,9 +451,51 @@ Tableau :
             }
         }
 
+        // Fonction pour basculer le mode sombre
+        function toggleDarkMode() {
+            const body = document.body;
+            const btn = event.target;
+
+            body.classList.toggle('dark-mode');
+
+            // Mettre à jour le texte du bouton
+            if (body.classList.contains('dark-mode')) {
+                btn.innerHTML = '☀️ Mode Clair';
+                localStorage.setItem('dark-mode', 'enabled');
+            } else {
+                btn.innerHTML = '🌙 Mode Sombre';
+                localStorage.setItem('dark-mode', 'disabled');
+            }
+        }
+
         // Fonction pour exporter en HTML
         function exportToHTML() {
             const renderedContent = document.getElementById('markdown-output').innerHTML;
+            const isDarkMode = document.body.classList.contains('dark-mode');
+
+            // Styles en mode clair
+            const lightModeStyles = `
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            background: white;
+            color: #333;
+        }`;
+
+            // Styles en mode sombre
+            const darkModeStyles = `
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }`;
 
             // Créer un document HTML complet avec tous les styles
             const htmlContent = `<!DOCTYPE html>
@@ -371,27 +519,19 @@ Tableau :
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem;
-            line-height: 1.6;
-            background: white;
-        }
+    <style>${isDarkMode ? darkModeStyles : lightModeStyles}
 
         h1 {
             font-size: 2em;
             margin: 0.67em 0;
-            border-bottom: 2px solid #eee;
+            border-bottom: 2px solid ${isDarkMode ? '#4a5568' : '#eee'};
             padding-bottom: 0.3em;
         }
 
         h2 {
             font-size: 1.5em;
             margin: 0.75em 0 0.5em;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid ${isDarkMode ? '#4a5568' : '#eee'};
             padding-bottom: 0.3em;
         }
 
@@ -410,7 +550,8 @@ Tableau :
         }
 
         code {
-            background: #f4f4f4;
+            background: ${isDarkMode ? '#2d3748' : '#f4f4f4'};
+            color: ${isDarkMode ? '#e0e0e0' : 'inherit'};
             padding: 2px 6px;
             border-radius: 3px;
             font-family: 'Courier New', Courier, monospace;
@@ -418,7 +559,8 @@ Tableau :
         }
 
         pre {
-            background: #f4f4f4;
+            background: ${isDarkMode ? '#2d3748' : '#f4f4f4'};
+            color: ${isDarkMode ? '#e0e0e0' : 'inherit'};
             padding: 1em;
             border-radius: 5px;
             overflow-x: auto;
@@ -434,7 +576,7 @@ Tableau :
             border-left: 4px solid #667eea;
             padding-left: 1em;
             margin: 1em 0;
-            color: #666;
+            color: ${isDarkMode ? '#a0aec0' : '#666'};
             font-style: italic;
         }
 
@@ -454,18 +596,18 @@ Tableau :
         }
 
         th, td {
-            border: 1px solid #ddd;
+            border: 1px solid ${isDarkMode ? '#4a5568' : '#ddd'};
             padding: 0.75em;
             text-align: left;
         }
 
         th {
-            background: #f8f9fa;
+            background: ${isDarkMode ? '#2d3748' : '#f8f9fa'};
             font-weight: 600;
         }
 
         a {
-            color: #667eea;
+            color: ${isDarkMode ? '#90cdf4' : '#667eea'};
             text-decoration: none;
         }
 
@@ -480,7 +622,7 @@ Tableau :
 
         hr {
             border: none;
-            border-top: 2px solid #eee;
+            border-top: 2px solid ${isDarkMode ? '#4a5568' : '#eee'};
             margin: 2em 0;
         }
     </style>
@@ -551,6 +693,14 @@ ${renderedContent}
             if (saved && saved !== '') {
                 input.value = saved;
                 updatePreview();
+            }
+
+            // Charger la préférence du mode sombre
+            const darkMode = localStorage.getItem('dark-mode');
+            const themeBtn = document.querySelector('.theme-toggle-btn');
+            if (darkMode === 'enabled') {
+                document.body.classList.add('dark-mode');
+                themeBtn.innerHTML = '☀️ Mode Clair';
             }
         });
     </script>
