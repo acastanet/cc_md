@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Éditeur Markdown en Temps Réel</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -245,6 +248,22 @@ console.log('Code avec coloration syntaxique');
 
 ---
 
+## Formules LaTeX
+
+Formule en ligne : $E = mc^2$ et $\sqrt{a^2 + b^2}$
+
+Formule affichée :
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+
+$$
+f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}
+$$
+
+---
+
 Tableau :
 
 | Colonne 1 | Colonne 2 |
@@ -276,6 +295,19 @@ Tableau :
         function updatePreview() {
             const markdownText = input.value;
             output.innerHTML = marked.parse(markdownText);
+
+            // Rendre les formules LaTeX avec KaTeX
+            if (window.renderMathInElement) {
+                renderMathInElement(output, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                        {left: '\\(', right: '\\)', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
         }
 
         // Écouter les changements dans le textarea
