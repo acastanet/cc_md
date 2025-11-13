@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur d'Équations Visuel - WYSIWYG</title>
+
+    <!-- MathLive CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/mathlive/dist/mathlive-static.css">
+    <link rel="stylesheet" href="https://unpkg.com/mathlive/dist/mathlive-fonts.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1000px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .editor-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-description {
+            color: #999;
+            font-size: 0.85em;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        /* Style MathLive */
+        math-field {
+            display: block;
+            width: 100%;
+            min-height: 80px;
+            padding: 20px;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            font-size: 24px;
+            background: #f8f9ff;
+            transition: all 0.3s;
+        }
+
+        math-field:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .latex-output {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #333;
+            word-wrap: break-word;
+            min-height: 50px;
+        }
+
+        .chatbot-simulation {
+            background: #f0f4ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .chat-message {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-message strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .preview-equation {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: inline-block;
+            border: 2px solid #e0e0e0;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95em;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .examples {
+            background: #fff9e6;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .examples h3 {
+            color: #f57c00;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .example-item {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .example-item:hover {
+            background: #f5f5f5;
+            border-color: #ffc107;
+            transform: translateY(-2px);
+        }
+
+        .example-item .example-label {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #1565c0;
+        }
+
+        .help-box {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .help-box h4 {
+            color: #9c27b0;
+            margin-bottom: 10px;
+        }
+
+        .help-box ul {
+            margin-left: 20px;
+            color: #666;
+        }
+
+        .help-box li {
+            margin: 5px 0;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .comparison-table {
+            margin-top: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: #f0f4ff;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .example-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Éditeur d'Équations WYSIWYG <span class="badge">VISUEL</span></h1>
+        <p class="subtitle">Créez vos équations mathématiques visuellement avec MathLive - Parfait pour les élèves !</p>
+
+        <div class="editor-section">
+            <div class="section-title">
+                🎨 Éditeur Visuel
+            </div>
+            <div class="section-description">
+                Cliquez dans la zone ci-dessous et commencez à taper. Utilisez votre clavier ou les boutons d'aide pour insérer des symboles.
+            </div>
+
+            <math-field id="mathField">
+                x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+            </math-field>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <span>📊 Format:</span>
+                    <span id="format">LaTeX</span>
+                </div>
+                <div class="stat-item">
+                    <span>✨ Statut:</span>
+                    <span id="status">Prêt</span>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn-success" onclick="insertSymbol('\\frac{#@}{#?}')">➗ Fraction</button>
+                <button class="btn-success" onclick="insertSymbol('\\sqrt{#?}')">√ Racine</button>
+                <button class="btn-success" onclick="insertSymbol('#@^{#?}')">ⁿ Puissance</button>
+                <button class="btn-success" onclick="insertSymbol('#@_{#?}')">ₙ Indice</button>
+                <button class="btn-success" onclick="insertSymbol('\\int')">∫ Intégrale</button>
+                <button class="btn-success" onclick="insertSymbol('\\sum')">Σ Somme</button>
+                <button class="btn-success" onclick="insertSymbol('\\lim')">lim Limite</button>
+                <button class="btn-success" onclick="insertSymbol('\\pi')">π Pi</button>
+                <button class="btn-secondary" onclick="clearEditor()">🗑️ Effacer</button>
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <div class="section-title">
+                📝 Code LaTeX généré
+            </div>
+            <div class="latex-output" id="latexOutput"></div>
+
+            <div class="buttons">
+                <button class="btn-primary" onclick="copyLatex()">📋 Copier LaTeX</button>
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <div class="section-title">💬 Simulation Chatbot</div>
+            <div class="chatbot-simulation">
+                <div class="chat-message">
+                    <strong>Utilisateur:</strong>
+                    Peux-tu m'expliquer la formule que j'ai écrite ?
+                </div>
+                <div class="chat-message">
+                    <strong>Chatbot:</strong>
+                    Bien sûr ! Voici ton équation : <span id="chatbotEquation"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>📚 Exemples d'équations (cliquez pour charger)</h3>
+            <div class="example-grid">
+                <div class="example-item" onclick="loadExample('x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+                    </math-field>
+                    <div class="example-label">Formule quadratique</div>
+                </div>
+
+                <div class="example-item" onclick="loadExample('E = mc^2')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        E = mc^2
+                    </math-field>
+                    <div class="example-label">Einstein</div>
+                </div>
+
+                <div class="example-item" onclick="loadExample('\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+                    </math-field>
+                    <div class="example-label">Intégrale gaussienne</div>
+                </div>
+
+                <div class="example-item" onclick="loadExample('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        \sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+                    </math-field>
+                    <div class="example-label">Somme</div>
+                </div>
+
+                <div class="example-item" onclick="loadExample('a^2 + b^2 = c^2')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        a^2 + b^2 = c^2
+                    </math-field>
+                    <div class="example-label">Pythagore</div>
+                </div>
+
+                <div class="example-item" onclick="loadExample('\\sin^2(\\theta) + \\cos^2(\\theta) = 1')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        \sin^2(\theta) + \cos^2(\theta) = 1
+                    </math-field>
+                    <div class="example-label">Identité trigo</div>
+                </div>
+
+                <div class="example-item" onclick="loadExample('\\lim_{n \\to \\infty} \\left(1 + \\frac{1}{n}\\right)^n = e')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        \lim_{n \to \infty} \left(1 + \frac{1}{n}\right)^n = e
+                    </math-field>
+                    <div class="example-label">Définition de e</div>
+                </div>
+
+                <div class="example-item" onclick="loadExample('\\frac{d}{dx}(x^n) = nx^{n-1}')">
+                    <math-field read-only style="font-size: 16px; border: none; background: transparent; padding: 5px;">
+                        \frac{d}{dx}(x^n) = nx^{n-1}
+                    </math-field>
+                    <div class="example-label">Dérivée</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-box">
+            <h4>🎓 Guide d'utilisation pour les élèves</h4>
+            <ul>
+                <li><strong>Taper directement :</strong> Commencez à taper votre équation, elle s'affiche en temps réel !</li>
+                <li><strong>Fractions :</strong> Cliquez sur "Fraction" ou tapez / puis naviguez avec les flèches</li>
+                <li><strong>Puissances :</strong> Utilisez ^ ou le bouton "Puissance"</li>
+                <li><strong>Racines carrées :</strong> Cliquez sur "Racine" ou tapez \sqrt</li>
+                <li><strong>Navigation :</strong> Utilisez les flèches du clavier pour vous déplacer dans l'équation</li>
+                <li><strong>Grecs :</strong> Tapez \ suivi du nom (ex: \alpha, \beta, \pi)</li>
+                <li><strong>Fonctions :</strong> sin, cos, tan, log, ln s'affichent automatiquement</li>
+            </ul>
+        </div>
+
+        <div class="comparison-table">
+            <h3 style="margin-bottom: 15px; color: #667eea;">📊 Comparaison des versions</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Caractéristique</th>
+                        <th>Version Texte</th>
+                        <th>Version Visuelle (actuelle)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Facilité pour débutants</td>
+                        <td>⭐⭐</td>
+                        <td>⭐⭐⭐⭐⭐</td>
+                    </tr>
+                    <tr>
+                        <td>Rendu temps réel</td>
+                        <td>Sur bouton</td>
+                        <td>Instantané</td>
+                    </tr>
+                    <tr>
+                        <td>Clavier virtuel</td>
+                        <td>Non</td>
+                        <td>Oui (intégré)</td>
+                    </tr>
+                    <tr>
+                        <td>Navigation visuelle</td>
+                        <td>Non</td>
+                        <td>Oui</td>
+                    </tr>
+                    <tr>
+                        <td>Boutons d'aide</td>
+                        <td>Exemples</td>
+                        <td>Boutons + Exemples</td>
+                    </tr>
+                    <tr>
+                        <td>Idéal pour</td>
+                        <td>Experts LaTeX</td>
+                        <td>Élèves & Débutants</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="info-box">
+            💡 <strong>À propos de MathLive :</strong> MathLive est une bibliothèque open-source MIT moderne et performante
+            avec plus de 800 commandes LaTeX intégrées. Elle est utilisée dans l'éducation et compatible avec les lecteurs d'écran
+            pour l'accessibilité. Idéale pour les élèves qui découvrent les équations mathématiques !
+        </div>
+    </div>
+
+    <!-- MathLive JS -->
+    <script src="https://unpkg.com/mathlive"></script>
+
+    <script>
+        const mathField = document.getElementById('mathField');
+        const latexOutput = document.getElementById('latexOutput');
+        const chatbotEquation = document.getElementById('chatbotEquation');
+        const status = document.getElementById('status');
+
+        // Configuration de MathLive
+        mathField.addEventListener('input', (ev) => {
+            updateOutputs();
+        });
+
+        // Raccourcis clavier personnalisés
+        mathField.setOptions({
+            virtualKeyboardMode: 'manual',
+            inlineShortcuts: {
+                'pi': '\\pi',
+                'alpha': '\\alpha',
+                'beta': '\\beta',
+                'gamma': '\\gamma',
+                'theta': '\\theta',
+                'lambda': '\\lambda',
+                'mu': '\\mu',
+                'sigma': '\\sigma',
+                'omega': '\\omega',
+            }
+        });
+
+        function updateOutputs() {
+            const latex = mathField.value;
+
+            // Mise à jour du code LaTeX
+            latexOutput.textContent = latex || '(vide)';
+
+            // Mise à jour du chatbot (création d'un nouveau math-field en lecture seule)
+            chatbotEquation.innerHTML = '';
+            if (latex) {
+                const preview = document.createElement('math-field');
+                preview.setAttribute('read-only', '');
+                preview.style.border = 'none';
+                preview.style.background = 'transparent';
+                preview.style.padding = '0';
+                preview.style.fontSize = '18px';
+                preview.value = latex;
+                chatbotEquation.appendChild(preview);
+            } else {
+                chatbotEquation.textContent = '(en attente d\'équation)';
+            }
+
+            // Mise à jour du statut
+            status.textContent = latex ? '✓ Équation valide' : 'En attente';
+            status.style.color = latex ? '#4caf50' : '#666';
+        }
+
+        function insertSymbol(latex) {
+            mathField.executeCommand(['insert', latex]);
+            mathField.focus();
+        }
+
+        function clearEditor() {
+            mathField.value = '';
+            updateOutputs();
+            mathField.focus();
+        }
+
+        function loadExample(latex) {
+            mathField.value = latex;
+            updateOutputs();
+            mathField.focus();
+
+            // Animation de feedback
+            const originalStatus = status.textContent;
+            status.textContent = '✓ Exemple chargé !';
+            status.style.color = '#4caf50';
+            setTimeout(() => {
+                updateOutputs();
+            }, 1000);
+        }
+
+        function copyLatex() {
+            const latex = mathField.value;
+            if (!latex) {
+                alert('Aucune équation à copier !');
+                return;
+            }
+
+            navigator.clipboard.writeText(latex).then(() => {
+                const originalText = status.textContent;
+                const originalColor = status.style.color;
+                status.textContent = '✓ LaTeX copié dans le presse-papier !';
+                status.style.color = '#4caf50';
+                setTimeout(() => {
+                    status.textContent = originalText;
+                    status.style.color = originalColor;
+                }, 2000);
+            }).catch(err => {
+                alert('Erreur lors de la copie : ' + err);
+            });
+        }
+
+        // Initialisation
+        updateOutputs();
+
+        // Focus automatique sur l'éditeur au chargement
+        window.addEventListener('load', () => {
+            mathField.focus();
+        });
+    </script>
+</body>
+</html>
