@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur LaTeX en Temps Réel</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- MathJax pour le support LaTeX complet -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                packages: {'[+]': ['ams', 'cases', 'mathtools', 'physics']},
+                tags: 'ams',
+                macros: {
+                    R: "\\mathbb{R}",
+                    N: "\\mathbb{N}",
+                    Z: "\\mathbb{Z}",
+                    C: "\\mathbb{C}",
+                    Q: "\\mathbb{Q}"
+                }
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: white;
+            color: #2563eb;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 70px);
+            gap: 0;
+        }
+
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: white;
+        }
+
+        .column-header {
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .left-column {
+            border-right: 3px solid #e2e8f0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .small-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .small-btn:hover {
+            background: #2563eb;
+        }
+
+        #latex-input {
+            flex: 1;
+            padding: 1.5rem;
+            border: none;
+            resize: none;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            outline: none;
+            background: #fafafa;
+            color: #1e293b;
+        }
+
+        #latex-output {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            background: white;
+            color: #1e293b;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        /* Styles pour le LaTeX rendu */
+        #latex-output h1 {
+            font-size: 2em;
+            margin: 1em 0 0.5em;
+            color: #1e293b;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 0.3em;
+        }
+
+        #latex-output h2 {
+            font-size: 1.5em;
+            margin: 0.8em 0 0.4em;
+            color: #334155;
+        }
+
+        #latex-output h3 {
+            font-size: 1.25em;
+            margin: 0.75em 0 0.4em;
+            color: #475569;
+        }
+
+        #latex-output p {
+            margin: 1em 0;
+            line-height: 1.8;
+        }
+
+        #latex-output .mjx-chtml {
+            font-size: 1.1em !important;
+        }
+
+        #latex-output hr {
+            border: none;
+            border-top: 2px solid #e2e8f0;
+            margin: 2em 0;
+        }
+
+        /* Scrollbar styling */
+        #latex-output::-webkit-scrollbar,
+        #latex-input::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        #latex-output::-webkit-scrollbar-track,
+        #latex-input::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        #latex-output::-webkit-scrollbar-thumb,
+        #latex-input::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 6px;
+        }
+
+        #latex-output::-webkit-scrollbar-thumb:hover,
+        #latex-input::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .left-column {
+                border-right: none;
+                border-bottom: 3px solid #e2e8f0;
+            }
+        }
+
+        /* Mode Sombre */
+        body.dark-mode {
+            background: #0f172a;
+        }
+
+        body.dark-mode .header {
+            background: linear-gradient(135deg, #1e40af 0%, #6b21a8 100%);
+        }
+
+        body.dark-mode .btn {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .btn:hover {
+            background: #334155;
+        }
+
+        body.dark-mode .column {
+            background: #1e293b;
+        }
+
+        body.dark-mode .column-header {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .left-column {
+            border-right: 3px solid #334155;
+        }
+
+        body.dark-mode #latex-input {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode #latex-output {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode #latex-output h1 {
+            color: #e2e8f0;
+            border-bottom-color: #3b82f6;
+        }
+
+        body.dark-mode #latex-output h2 {
+            color: #cbd5e1;
+        }
+
+        body.dark-mode #latex-output h3 {
+            color: #94a3b8;
+        }
+
+        body.dark-mode #latex-output hr {
+            border-top-color: #334155;
+        }
+
+        body.dark-mode .small-btn {
+            background: #3b82f6;
+        }
+
+        body.dark-mode .small-btn:hover {
+            background: #2563eb;
+        }
+
+        @media (max-width: 768px) {
+            body.dark-mode .left-column {
+                border-right: none;
+                border-bottom: 3px solid #334155;
+            }
+        }
+
+        /* Notification toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #10b981;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>∫ Éditeur LaTeX en Temps Réel</h1>
+        <div class="header-buttons">
+            <button class="btn" onclick="toggleDarkMode()">🌙 Mode Sombre</button>
+            <button class="btn" onclick="exportToHTML()">📥 Exporter HTML</button>
+            <button class="btn" onclick="copyOutput()">📋 Copier Rendu</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="column left-column">
+            <div class="column-header">
+                <span>📝 Source LaTeX / Markdown</span>
+                <div class="header-actions">
+                    <button class="small-btn" onclick="clearInput()">Effacer</button>
+                    <button class="small-btn" onclick="loadExample()">Exemple</button>
+                </div>
+            </div>
+            <textarea id="latex-input" placeholder="Collez ou tapez votre LaTeX ici..."></textarea>
+        </div>
+
+        <div class="column">
+            <div class="column-header">
+                <span>✨ Rendu Formaté</span>
+            </div>
+            <div id="latex-output"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Configuration de marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: true,
+            mangle: false,
+            sanitize: false
+        });
+
+        const input = document.getElementById('latex-input');
+        const output = document.getElementById('latex-output');
+
+        // Fonction pour mettre à jour le rendu
+        function updatePreview() {
+            const text = input.value;
+            output.innerHTML = marked.parse(text);
+
+            // Re-render MathJax après mise à jour du contenu
+            if (window.MathJax) {
+                MathJax.typesetPromise([output]).catch((err) => console.log('Erreur MathJax:', err));
+            }
+        }
+
+        // Fonction pour basculer le mode sombre
+        function toggleDarkMode() {
+            const body = document.body;
+            const btn = event.target;
+
+            body.classList.toggle('dark-mode');
+
+            if (body.classList.contains('dark-mode')) {
+                btn.innerHTML = '☀️ Mode Clair';
+                localStorage.setItem('latex-dark-mode', 'enabled');
+            } else {
+                btn.innerHTML = '🌙 Mode Sombre';
+                localStorage.setItem('latex-dark-mode', 'disabled');
+            }
+        }
+
+        // Fonction pour afficher un toast
+        function showToast(message, duration = 2000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        // Fonction pour copier le rendu
+        function copyOutput() {
+            const outputHTML = document.getElementById('latex-output').innerHTML;
+            const blob = new Blob([outputHTML], { type: 'text/html' });
+            const clipboardItem = new ClipboardItem({ 'text/html': blob });
+
+            navigator.clipboard.write([clipboardItem]).then(() => {
+                showToast('✅ Rendu copié dans le presse-papiers !');
+            }).catch(() => {
+                // Fallback: copier le texte brut
+                const textContent = document.getElementById('latex-output').innerText;
+                navigator.clipboard.writeText(textContent).then(() => {
+                    showToast('✅ Texte copié dans le presse-papiers !');
+                });
+            });
+        }
+
+        // Fonction pour effacer l'entrée
+        function clearInput() {
+            if (confirm('Effacer tout le contenu ?')) {
+                input.value = '';
+                updatePreview();
+                localStorage.removeItem('latex-content');
+            }
+        }
+
+        // Fonction pour charger un exemple complet
+        function loadExample() {
+            const example = `# Guide Complet des Balises LaTeX
+
+## 1. Formules de Base
+
+### Formules en ligne
+Voici une formule en ligne : $E = mc^2$
+
+La célèbre identité d'Euler : $e^{i\\pi} + 1 = 0$
+
+### Formules en bloc
+$$
+\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}
+$$
+
+---
+
+## 2. Fractions et Racines
+
+### Fractions
+$$
+\\frac{a}{b} \\quad \\frac{\\partial f}{\\partial x} \\quad \\frac{dy}{dx}
+$$
+
+### Fractions complexes
+$$
+\\frac{1}{1 + \\frac{1}{1 + \\frac{1}{1 + x}}}
+$$
+
+### Racines
+$$
+\\sqrt{2} \\quad \\sqrt[3]{8} \\quad \\sqrt{x^2 + y^2}
+$$
+
+---
+
+## 3. Puissances et Indices
+
+$$
+x^2 \\quad y^{n+1} \\quad e^{i\\theta} \\quad 2^{2^{2^{2}}}
+$$
+
+$$
+x_1 \\quad a_{ij} \\quad x_{\\text{max}}
+$$
+
+---
+
+## 4. Sommes, Produits et Intégrales
+
+### Sommes
+$$
+\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}
+$$
+
+### Produits
+$$
+\\prod_{i=1}^{n} x_i = x_1 \\cdot x_2 \\cdots x_n
+$$
+
+### Intégrales
+$$
+\\int_0^\\infty e^{-x} dx = 1
+$$
+
+$$
+\\iint_D f(x,y) \\, dA \\quad \\iiint_V g(x,y,z) \\, dV
+$$
+
+$$
+\\oint_C \\vec{F} \\cdot d\\vec{r}
+$$
+
+---
+
+## 5. Limites et Dérivées
+
+### Limites
+$$
+\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1
+$$
+
+$$
+\\lim_{n \\to \\infty} \\left(1 + \\frac{1}{n}\\right)^n = e
+$$
+
+### Dérivées
+$$
+\\frac{d}{dx}(x^n) = nx^{n-1}
+$$
+
+$$
+\\frac{\\partial^2 u}{\\partial x^2} + \\frac{\\partial^2 u}{\\partial y^2} = 0
+$$
+
+---
+
+## 6. Matrices et Vecteurs
+
+### Matrices
+$$
+\\begin{pmatrix}
+a & b \\\\
+c & d
+\\end{pmatrix}
+\\quad
+\\begin{bmatrix}
+1 & 2 & 3 \\\\
+4 & 5 & 6 \\\\
+7 & 8 & 9
+\\end{bmatrix}
+$$
+
+### Déterminants
+$$
+\\begin{vmatrix}
+a & b \\\\
+c & d
+\\end{vmatrix} = ad - bc
+$$
+
+### Vecteurs
+$$
+\\vec{v} = \\begin{pmatrix} x \\\\ y \\\\ z \\end{pmatrix}
+$$
+
+---
+
+## 7. Systèmes d'Équations
+
+$$
+\\begin{cases}
+x + y = 5 \\\\
+2x - y = 1
+\\end{cases}
+$$
+
+$$
+\\begin{align}
+f(x) &= x^2 + 2x + 1 \\\\
+     &= (x+1)^2
+\\end{align}
+$$
+
+---
+
+## 8. Symboles Mathématiques
+
+### Opérateurs
+$$
+\\pm \\quad \\mp \\quad \\times \\quad \\div \\quad \\cdot
+$$
+
+### Relations
+$$
+\\leq \\quad \\geq \\quad \\neq \\quad \\approx \\quad \\equiv
+$$
+
+$$
+\\subset \\quad \\subseteq \\quad \\in \\quad \\notin \\quad \\cup \\quad \\cap
+$$
+
+### Flèches
+$$
+\\to \\quad \\rightarrow \\quad \\Rightarrow \\quad \\leftrightarrow \\quad \\Leftrightarrow
+$$
+
+### Symboles grecs
+$$
+\\alpha \\quad \\beta \\quad \\gamma \\quad \\delta \\quad \\epsilon \\quad \\theta
+$$
+
+$$
+\\Gamma \\quad \\Delta \\quad \\Theta \\quad \\Lambda \\quad \\Sigma \\quad \\Omega
+$$
+
+---
+
+## 9. Fonctions Spéciales
+
+### Trigonométrie
+$$
+\\sin(x) \\quad \\cos(x) \\quad \\tan(x) \\quad \\arcsin(x)
+$$
+
+### Logarithmes
+$$
+\\log(x) \\quad \\ln(x) \\quad \\log_2(x)
+$$
+
+### Maximum et Minimum
+$$
+\\max(a, b) \\quad \\min(a, b) \\quad \\sup_{x \\in A} f(x)
+$$
+
+---
+
+## 10. Espaces et Ensembles
+
+$$
+\\mathbb{R} \\quad \\mathbb{N} \\quad \\mathbb{Z} \\quad \\mathbb{Q} \\quad \\mathbb{C}
+$$
+
+$$
+\\emptyset \\quad \\forall \\quad \\exists \\quad \\nexists
+$$
+
+---
+
+## 11. Équations Célèbres
+
+### Équation de Schrödinger
+$$
+i\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\mathbf{r},t) = \\left[-\\frac{\\hbar^2}{2m}\\nabla^2 + V(\\mathbf{r},t)\\right]\\Psi(\\mathbf{r},t)
+$$
+
+### Équations de Maxwell
+$$
+\\begin{align}
+\\nabla \\cdot \\mathbf{E} &= \\frac{\\rho}{\\epsilon_0} \\\\
+\\nabla \\cdot \\mathbf{B} &= 0 \\\\
+\\nabla \\times \\mathbf{E} &= -\\frac{\\partial \\mathbf{B}}{\\partial t} \\\\
+\\nabla \\times \\mathbf{B} &= \\mu_0\\mathbf{J} + \\mu_0\\epsilon_0\\frac{\\partial \\mathbf{E}}{\\partial t}
+\\end{align}
+$$
+
+### Transformée de Fourier
+$$
+\\hat{f}(\\omega) = \\int_{-\\infty}^{\\infty} f(t) e^{-i\\omega t} dt
+$$
+
+### Formule de Stirling
+$$
+n! \\approx \\sqrt{2\\pi n} \\left(\\frac{n}{e}\\right)^n
+$$
+
+---
+
+## 12. Accolades et Grands Opérateurs
+
+$$
+\\left( \\frac{a}{b} \\right) \\quad \\left[ \\frac{a}{b} \\right] \\quad \\left\\{ \\frac{a}{b} \\right\\}
+$$
+
+$$
+\\left| \\frac{a}{b} \\right| \\quad \\left\\| \\frac{a}{b} \\right\\|
+$$
+
+---
+
+## 13. Texte dans les Formules
+
+$$
+\\text{Si } x > 0 \\text{ alors } f(x) = \\sqrt{x}
+$$
+
+---
+
+## 14. Espaces Personnalisés
+
+$$
+a \\, b \\quad a \\: b \\quad a \\; b \\quad a \\quad b \\quad a \\qquad b
+$$
+
+---
+
+Testez toutes ces balises en temps réel ! 🚀`;
+
+            input.value = example;
+            updatePreview();
+        }
+
+        // Fonction pour exporter en HTML
+        function exportToHTML() {
+            const renderedContent = document.getElementById('latex-output').innerHTML;
+            const isDarkMode = document.body.classList.contains('dark-mode');
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document LaTeX Exporté</title>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                packages: {'[+]': ['ams', 'cases', 'mathtools', 'physics']},
+                tags: 'ams',
+                macros: {
+                    R: "\\\\mathbb{R}",
+                    N: "\\\\mathbb{N}",
+                    Z: "\\\\mathbb{Z}",
+                    C: "\\\\mathbb{C}",
+                    Q: "\\\\mathbb{Q}"
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.8;
+            background: ${isDarkMode ? '#1e293b' : 'white'};
+            color: ${isDarkMode ? '#e2e8f0' : '#1e293b'};
+        }
+        h1 {
+            font-size: 2em;
+            margin: 1em 0 0.5em;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 0.3em;
+        }
+        h2 {
+            font-size: 1.5em;
+            margin: 0.8em 0 0.4em;
+        }
+        h3 {
+            font-size: 1.25em;
+            margin: 0.75em 0 0.4em;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .mjx-chtml {
+            font-size: 1.1em !important;
+        }
+        hr {
+            border: none;
+            border-top: 2px solid ${isDarkMode ? '#334155' : '#e2e8f0'};
+            margin: 2em 0;
+        }
+    </style>
+</head>
+<body>
+${renderedContent}
+</body>
+</html>`;
+
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'latex-export.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('✅ HTML exporté avec succès !');
+        }
+
+        // Écouter les changements dans le textarea
+        input.addEventListener('input', updatePreview);
+
+        // Gérer le support des tabulations
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const value = this.value;
+
+                this.value = value.substring(0, start) + '    ' + value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+
+                updatePreview();
+            }
+        });
+
+        // Sauvegarder le contenu dans le localStorage
+        input.addEventListener('input', function() {
+            localStorage.setItem('latex-content', input.value);
+        });
+
+        // Charger le contenu sauvegardé au démarrage
+        window.addEventListener('load', function() {
+            const saved = localStorage.getItem('latex-content');
+            if (saved && saved !== '') {
+                input.value = saved;
+                updatePreview();
+            } else {
+                // Charger l'exemple par défaut
+                loadExample();
+            }
+
+            // Charger la préférence du mode sombre
+            const darkMode = localStorage.getItem('latex-dark-mode');
+            const themeBtn = document.querySelector('.header-buttons .btn');
+            if (darkMode === 'enabled') {
+                document.body.classList.add('dark-mode');
+                themeBtn.innerHTML = '☀️ Mode Clair';
+            }
+        });
+    </script>
+</body>
+</html>
